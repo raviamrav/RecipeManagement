@@ -9,11 +9,12 @@ namespace RecipeLibrary.Infrastructure.Repositories
     {
         void Add(Category category);
 
+        void Update(Category category);
+
         List<Category> GetAll();
 
         Category? GetById(Guid id);
 
         void Delete(Category category);
-
     }
 }

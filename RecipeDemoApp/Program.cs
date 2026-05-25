@@ -6,24 +6,60 @@ using RecipeLibrary.Infrastructure.Repositories;
 // =======================
 // DATABASE + REPOSITORIES
 // =======================
+
 var dbContext = new RecipeDbContext();
 
-var userRepository = new SqliteUserRepository(dbContext);
-var categoryRepository = new SqliteCategoryRepository(dbContext);
-var ingredientRepository = new SqliteIngredientRepository(dbContext);
-var recipeRepository = new SqliteRecipeRepository(dbContext);
+var userRepository =
+    new SqliteUserRepository(dbContext);
 
-var userService = new UserService(userRepository);
-var categoryService = new CategoryService(categoryRepository);
-var ingredientService = new IngredientService(ingredientRepository);
-var recipeService = new RecipeService(recipeRepository);
+var categoryRepository =
+    new SqliteCategoryRepository(dbContext);
+
+var ingredientRepository =
+    new SqliteIngredientRepository(dbContext);
+
+var recipeRepository =
+    new SqliteRecipeRepository(dbContext);
 
 // =======================
-// 1. USER CREATION
+// SERVICES
 // =======================
-Console.WriteLine("\n=== USER CREATION ===");
+
+var userService =
+    new UserService(userRepository);
+
+var categoryService =
+    new CategoryService(categoryRepository);
+
+var ingredientService =
+    new IngredientService(ingredientRepository);
+
+var recipeService =
+    new RecipeService(
+        recipeRepository,
+        categoryRepository
+    );
+
+// =======================
+// VARIABLES
+// =======================
 
 User? user = null;
+
+Ingredient? salt = null;
+Ingredient? milk = null;
+Ingredient? chocolate = null;
+
+Category? italian = null;
+
+Recipe? recipe = null;
+
+// =======================
+// USER CREATION
+// =======================
+
+Console.WriteLine("\n=== USER CREATION ===");
+
 try
 {
     user = userService.Register(
@@ -32,111 +68,294 @@ try
     );
 
     Console.WriteLine(
-        $"User created: {user.Name} ({user.Email})"
+        $"User created: {user.Name}"
     );
 }
 catch (Exception)
 {
+    user = userRepository
+        .GetByEmail("ravi@mail.com");
+
     Console.WriteLine(
-        $"User already exists. Loading existing user."
+        $"Existing user loaded: {user?.Name}"
     );
-
-    user = userRepository.GetByEmail("ravi@mail.com");
-
-    if (user != null)
-    {
-        Console.WriteLine(
-            $"Existing user loaded: {user!.Name}"
-        );
-    }
-    else
-    {
-        Console.WriteLine(
-            "User could not be loaded."
-        );
-    }
 }
 
 // =======================
-// 2. INGREDIENTS
+// INGREDIENT CREATION
 // =======================
-Console.WriteLine("\n=== INGREDIENTS ===");
 
-var salt = ingredientService.CreateIngredient("Salt");
-var milk = ingredientService.CreateIngredient("Milk");
-var chocolate = ingredientService.CreateIngredient("Chocolate");
+Console.WriteLine("\n=== INGREDIENT CREATION ===");
 
-Console.WriteLine($"Ingredients created: {salt.Name}, {milk.Name}, {chocolate.Name}");
+try
+{
+    salt = ingredientService
+        .CreateIngredient("Salt");
+
+    Console.WriteLine(
+        $"Ingredient created: {salt.Name}"
+    );
+}
+catch (Exception ex)
+{
+    Console.WriteLine(ex.Message);
+
+    salt = ingredientRepository
+        .GetAll()
+        .FirstOrDefault(i =>
+            i.Name == "Salt");
+}
+
+try
+{
+    milk = ingredientService
+        .CreateIngredient("Milk");
+
+    Console.WriteLine(
+        $"Ingredient created: {milk.Name}"
+    );
+}
+catch (Exception ex)
+{
+    Console.WriteLine(ex.Message);
+
+    milk = ingredientRepository
+        .GetAll()
+        .FirstOrDefault(i =>
+            i.Name == "Milk");
+}
+
+try
+{
+    chocolate = ingredientService
+        .CreateIngredient("Chocolate");
+
+    Console.WriteLine(
+        $"Ingredient created: {chocolate.Name}"
+    );
+}
+catch (Exception ex)
+{
+    Console.WriteLine(ex.Message);
+
+    chocolate = ingredientRepository
+        .GetAll()
+        .FirstOrDefault(i =>
+            i.Name == "Chocolate");
+}
 
 // =======================
-// 3. CATEGORIES
+// CATEGORY CREATION
 // =======================
-Console.WriteLine("\n=== CATEGORIES ===");
 
-var italian = categoryService.CreateCategory("Italian");
+Console.WriteLine("\n=== CATEGORY CREATION ===");
 
-Console.WriteLine($"Category created: {italian.Name}");
+try
+{
+    italian = categoryService
+        .CreateCategory("Italian");
+
+    Console.WriteLine(
+        $"Category created: {italian.Name}"
+    );
+}
+catch (Exception ex)
+{
+    Console.WriteLine(ex.Message);
+
+    italian = categoryRepository
+        .GetAll()
+        .FirstOrDefault(c =>
+            c.Name == "Italian");
+}
 
 // =======================
-// 4. RECIPE CREATION
+// RECIPE CREATION
 // =======================
+
 Console.WriteLine("\n=== RECIPE CREATION ===");
 
-var userId = user!.Id;
-var categoryId = italian.Id;
-var recipe = recipeService.CreateRecipe(
-    name: "Pasta Carbonara",
-    userId: userId,
-    ingredientIds: new List<Guid>
+if (
+    user != null &&
+    salt != null &&
+    milk != null &&
+    chocolate != null &&
+    italian != null
+)
+{
+    try
     {
-        salt.Id,
-        milk.Id,
-        chocolate.Id
-    },
-    categoryId: categoryId,
-    steps: new List<string>
-    {
-        "Boil milk",
-        "Add chocolate",
-        "Mix well"
+        recipe = recipeService.CreateRecipe(
+            name: "Pasta Carbonara",
+
+            userId: user.Id,
+
+            ingredientIds: new List<Guid>
+            {
+                salt.Id,
+                milk.Id,
+                chocolate.Id
+            },
+
+            categoryId: italian.Id,
+
+            steps: new List<string>
+            {
+                "Boil milk",
+                "Add chocolate",
+                "Mix well"
+            }
+        );
+
+        Console.WriteLine(
+            $"Recipe created: {recipe.Name}"
+        );
     }
+    catch (Exception ex)
+    {
+        Console.WriteLine(
+            $"Recipe creation failed: {ex.Message}"
+        );
+    }
+}
+
+// =======================
+// UPDATE RECIPE
+// =======================
+
+Console.WriteLine("\n=== RECIPE UPDATE ===");
+
+if (
+    recipe != null &&
+    salt != null &&
+    italian != null
+)
+{
+    try
+    {
+        recipeService.UpdateRecipe(
+            recipe.Id,
+
+            "Updated Pasta Carbonara",
+
+            new List<Guid>
+            {
+                salt.Id
+            },
+
+            italian.Id,
+
+            new List<string>
+            {
+                "Updated Step 1",
+                "Updated Step 2"
+            }
+        );
+
+        Console.WriteLine(
+            "Recipe updated successfully"
+        );
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine(
+            $"Recipe update failed: {ex.Message}"
+        );
+    }
+}
+
+// =======================
+// QUERY BY USER
+// =======================
+
+Console.WriteLine("\n=== RECIPES BY USER ===");
+
+if (user != null)
+{
+    var recipesByUser =
+        recipeService.GetRecipesByUser(
+            user.Id
+        );
+
+    foreach (var r in recipesByUser)
+    {
+        Console.WriteLine(
+            $"- {r.Name}"
+        );
+    }
+}
+
+// =======================
+// QUERY BY CATEGORY
+// =======================
+
+Console.WriteLine("\n=== RECIPES BY CATEGORY ===");
+
+if (italian != null)
+{
+    var recipesByCategory =
+        recipeService.GetRecipesByCategory(
+            italian.Id
+        );
+
+    foreach (var r in recipesByCategory)
+    {
+        Console.WriteLine(
+            $"- {r.Name}"
+        );
+    }
+}
+
+// =======================
+// QUERY BY INGREDIENT
+// =======================
+
+Console.WriteLine("\n=== RECIPES BY INGREDIENT ===");
+
+if (salt != null)
+{
+    var recipesByIngredient =
+        recipeService.GetRecipesByIngredient(
+            salt.Id
+        );
+
+    foreach (var r in recipesByIngredient)
+    {
+        Console.WriteLine(
+            $"- {r.Name}"
+        );
+    }
+}
+
+// =======================
+// CATEGORY UPDATE
+// =======================
+
+Console.WriteLine("\n=== CATEGORY UPDATE ===");
+
+if (italian != null)
+{
+    try
+    {
+        categoryService.UpdateCategory(
+            italian.Id,
+            "Updated Italian"
+        );
+
+        Console.WriteLine(
+            "Category updated successfully"
+        );
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine(ex.Message);
+    }
+}
+
+// =======================
+// DEMO COMPLETE
+// =======================
+
+Console.WriteLine(
+    "\n=== DEMO COMPLETE ==="
 );
-
-Console.WriteLine($"Recipe created: {recipe.Name}");
-
-// =======================
-// 5. QUERY DEMO
-// =======================
-Console.WriteLine("\n=== QUERY RESULTS ===");
-
-// By User
-var userRecipes = recipeService.GetRecipesByUser(user.Id);
-
-Console.WriteLine("\nRecipes by User:");
-foreach (var r in userRecipes)
-{
-    Console.WriteLine($"- {r.Name}");
-}
-
-// By Category
-var categoryRecipes = recipeService.GetRecipesByCategory(italian.Id);
-
-Console.WriteLine("\nRecipes by Category:");
-foreach (var r in categoryRecipes)
-{
-    Console.WriteLine($"- {r.Name}");
-}
-
-// By Ingredient
-var ingredientRecipes = recipeService.GetRecipesByIngredient(salt.Id);
-
-Console.WriteLine("\nRecipes by Ingredient:");
-foreach (var r in ingredientRecipes)
-{
-    Console.WriteLine($"- {r.Name}");
-}
-
-// =======================
-// END
-// =======================
-Console.WriteLine("\n=== DEMO COMPLETE ===");

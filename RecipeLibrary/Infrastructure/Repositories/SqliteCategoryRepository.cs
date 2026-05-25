@@ -10,7 +10,8 @@ namespace RecipeLibrary.Infrastructure.Repositories
     {
         private readonly RecipeDbContext _dbContext;
 
-        public SqliteCategoryRepository(RecipeDbContext dbContext)
+        public SqliteCategoryRepository(
+            RecipeDbContext dbContext)
         {
             _dbContext = dbContext;
         }
@@ -21,9 +22,16 @@ namespace RecipeLibrary.Infrastructure.Repositories
             _dbContext.SaveChanges();
         }
 
+        public void Update(Category category)
+        {
+            _dbContext.Categories.Update(category);
+            _dbContext.SaveChanges();
+        }
+
         public Category? GetById(Guid id)
         {
-            return _dbContext.Categories.FirstOrDefault(c => c.Id == id);
+            return _dbContext.Categories
+                .FirstOrDefault(c => c.Id == id);
         }
 
         public List<Category> GetAll()
