@@ -1,31 +1,60 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Text;
 using RecipeLibrary.Domain.Entities;
+using RecipeLibrary.Infrastructure.Repositories;
 
 namespace RecipeLibrary.Application.Services
 {
     public class UserService
     {
-        private readonly List<User> _users = new();
+        private readonly IUserRepository _userRepository;
 
-        public User Registration(string name, string email)
+        public UserService(IUserRepository userRepository)
         {
+            _userRepository = userRepository;
+        }
+
+
+        public User Register(string name, string email)
+        {
+            ValidateUser(name, email);
+
+            var existingUser = _userRepository.GetByEmail(email);
+            if (existingUser != null)
+            {
+                throw new Exception("Email is already registered");
+            }
+
             var user = new User
             {
-// Id = Guid.NewGuid(),
                 Name = name,
                 Email = email
             };
-
-            _users.Add(user);
-
+            _userRepository.Add(user);
             return user;
         }
 
         public List<User> GetAllUsers()
         {
-            return _users;
+            return _userRepository.GetAll();
+        }
+
+        private void ValidateUser(string name, string email)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new ValidationException("Name is required");
+            }
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                throw new ValidationException("Email is required");
+            }
+            if (!new EmailAddressAttribute().IsValid(email))
+            {
+                throw new ValidationException("Invalid email format");
+            }
         }
     }
 }

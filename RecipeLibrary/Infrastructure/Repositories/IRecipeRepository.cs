@@ -8,8 +8,12 @@ namespace RecipeLibrary.Infrastructure.Repositories
     public interface IRecipeRepository
     {
         void Add(Recipe recipe);
+        void Update(Recipe recipe);
+        void Delete(Recipe recipe);
+        Recipe? GetByRecipeId(Guid Id);
         List<Recipe> GetAll();
-
-        List<Recipe> GetByUserId(Guid userId);
+        List<Recipe> GetByUserId(Guid Id);
+        List<Recipe> GetByCategoryId(Guid CategoryId);
+        List<Recipe> GetByIngredientId(Guid IngredientId);
     }
 }
