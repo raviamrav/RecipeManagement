@@ -1,292 +1,265 @@
-# 🍽️ Recipe Management System
+# Recipe Management System
 
-## .NET Class Library | Entity Framework Core | SQLite | Clean Architecture
+A reusable .NET class library for managing users, recipes, ingredients, and categories, with persistent SQLite storage and a small console demo project.
 
-## 📌 Overview
-The **Recipe Management System** is a backend system built as a reusable .NET Class Library using C#, Entity Framework Core, and SQLite. 
+The project is intentionally structured as a library-first solution: business rules live in `RecipeLibrary`, while `RecipeDemoApp` only demonstrates the public API. This keeps the sample application thin and makes the library reusable from a desktop app, Web API, worker service, or another .NET application.
 
-The project demonstrates a real-world implementation of Clean Architecture principles with a strict separation between the **Domain**, **Application**, and **Infrastructure** layers. 
+## Overview
 
-The core business logic resides entirely inside a reusable Class Library (`RecipeLibrary`), while a separate Console Application (`RecipeDemoApp`) serves exclusively for demonstration, integration testing, and evaluation purposes.
+This solution implements a recipe management domain using C#, Entity Framework Core, and SQLite. It focuses on clear responsibilities, explicit validation, persistent storage, and a simple public API that hides infrastructure details from consumers.
 
-The system manages users, recipes, ingredients, and categories, enforcing real-world business constraints through a highly structured, service-driven architecture.
+The main entry point for consumers is:
 
----
-
-## 🎯 Business Requirements (Implemented)
-
-### 👤 User Management
-* Users can register in the system.
-* Duplicate email registration is prevented at the service layer.
-* Each recipe belongs to a registered user.
-
-### 🍲 Recipe Management
-* Users can create, update, and delete recipes.
-* **Enforced Business Rules:**
-  * Recipe names must be globally unique.
-  * Each recipe must contain at least one ingredient.
-  * Each recipe must contain at least one preparation step.
-  * Each recipe must belong to a valid category.
-
-### 🧂 Ingredient Management
-* Ingredients are global and user-independent.
-* New ingredients can be added dynamically to the system.
-* Duplicate ingredient names are strictly prevented.
-
-### 🏷️ Category Management
-* Categories can be created, updated, and deleted.
-* Category names must be unique.
-
-### 🔎 Query Features
-The system supports advanced querying and data fetching:
-* Get recipes by user
-* Get recipes by category
-* Get recipes by ingredient
-
----
+```csharp
+using var recipes = new RecipeManagement();
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                    RecipeDemoApp (Console)                   │
-│--------------------------------------------------------------│
-│ - Demonstrates application workflow                          │
-│ - Creates services and executes operations                   │
-│ - Used only for testing / demo purposes                      │
-└──────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌──────────────────────────────────────────────────────────────┐
-│                     Application Layer                        │
-│--------------------------------------------------------------│
-│ Services:                                                    │
-│ - RecipeService                                              │
-│ - UserService                                                │
-│ - CategoryService                                            │
-│ - IngredientService                                          │
-│                                                              │
-│ Responsibilities:                                            │
-│ - Business logic                                             │
-│ - Validation rules                                           │
-│ - Orchestration                                              │
-│ - Repository contracts (interfaces)                          │
-└──────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌──────────────────────────────────────────────────────────────┐
-│                        Domain Layer                          │
-│--------------------------------------------------------------│
-│ Entities:                                                    │
-│ - User                                                       │
-│ - Recipe                                                     │
-│ - Ingredient                                                 │
-│ - Category                                                   │
-│ - RecipeIngredient                                           │
-│ - RecipeStep                                                 │
-│                                                              │
-│ Responsibilities:                                            │
-│ - Core business models                                       │
-│ - Relationships                                              │
-│ - Domain structure                                           │
-└──────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌──────────────────────────────────────────────────────────────┐
-│                    Infrastructure Layer                      │
-│--------------------------------------------------------------│
-│ Persistence & External Concerns:                             │
-│ - RecipeDbContext                                            │
-│ - EF Core Configuration                                      │
-│ - SQLite Database                                            │
-│ - Repository Implementations                                 │
-│   - SqliteRecipeRepository                                   │
-│   - SqliteUserRepository                                     │
-│   - SqliteCategoryRepository                                 │
-│   - SqliteIngredientRepository                               │
-└──────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌──────────────────────────────────────────────────────────────┐
-│                         SQLite DB                            │
-│--------------------------------------------------------------│
-│ Tables:                                                      │
-│ - Users                                                      │
-│ - Recipes                                                    │
-│ - Ingredients                                                │
-│ - Categories                                                 │
-│ - RecipeIngredients                                          │
-│ - RecipeSteps                                                │
-└──────────────────────────────────────────────────────────────┘
 
+Applications can then register users, create ingredients and categories, create/update/delete recipes, and query recipes without directly creating repositories or accessing `DbContext`.
+
+## Business Requirements Implemented
+
+| Requirement | Status | Where handled |
+| --- | --- | --- |
+| .NET class library | Implemented | `RecipeLibrary` |
+| Sample project | Implemented | `RecipeDemoApp` |
+| Persistent storage | Implemented | SQLite via EF Core |
+| Registered users required for recipes | Implemented | `RecipeService` validates `userId` |
+| User management | Implemented | `UserService`, `RecipeManagement` |
+| Create/edit/delete recipes | Implemented | `RecipeService`, repositories |
+| Globally unique recipe names | Implemented | service validation + unique EF index |
+| Recipe requires at least one step | Implemented | `RecipeService` validation |
+| Recipe requires at least one ingredient | Implemented | `RecipeService` validation |
+| Recipe assigned to a category | Implemented | `RecipeService` validates category |
+| Global ingredient list | Implemented | `IngredientService`, `Ingredients` table |
+| Add new ingredients | Implemented | `CreateIngredient` |
+| Create/edit/delete categories | Implemented | `CategoryService` |
+| Unique category names | Implemented | service validation + unique EF index |
+| Query recipes by user | Implemented | `GetRecipesByUser` |
+| Query recipes by category | Implemented | `GetRecipesByCategory` |
+| Query recipes by ingredient | Implemented | `GetRecipesByIngredient` |
+| Favorites | Not implemented | Optional requirement |
+
+## High-Level Design
+
+```text
+RecipeDemoApp
+    |
+    | uses public library API only
+    v
+RecipeLibrary.RecipeManagement
+    |
+    | coordinates application services
+    v
+Application Services
+    |
+    | validate business rules through repository interfaces
+    v
+Infrastructure Repositories
+    |
+    | persist and query data
+    v
+SQLite Database
 ```
----
-## 🏗️ Architecture
-The project strictly isolates infrastructure and framework specifics away from the core software design patterns.
 
-### 📦 Domain Layer
-Contains core business entities, completely free of infrastructure or persistence frameworks:
-* `User`
-* `Recipe`
-* `Ingredient`
-* `Category`
-* `RecipeIngredient` (Junction table tracking quantitative recipe needs)
-* `RecipeStep` (One-to-Many sequential instructions)
+## Architecture
 
-### ⚙️ Application Layer
-Houses the application services, validation rules, orchestration, and repository abstractions:
-* **Main Services:** `RecipeService`, `UserService`, `CategoryService`, `IngredientService`
-* Defines interfaces (`IRecipeRepository`, etc.) to uphold dependency inversion.
+The codebase follows a layered structure:
 
-### 🗄️ Infrastructure Layer
-Manages the application's physical boundaries, external frameworks, and storage persistence:
-* Entity Framework Core integration and DbContext details
-* SQLite configuration and local state mapping
-* Concrete repository implementations (e.g., `SqliteRecipeRepository`)
+- `Domain`: core entities such as `User`, `Recipe`, `Ingredient`, `Category`, `RecipeIngredient`, and `RecipeStep`.
+- `Application`: service classes and repository interfaces. This layer owns business validation and use-case orchestration.
+- `Infrastructure`: Entity Framework Core `DbContext` and SQLite repository implementations.
+- `RecipeManagement`: public facade that wires the internal services and persistence components.
+- `RecipeDemoApp`: console sample that calls the library API and demonstrates typical use cases.
 
----
+The sample project does not create repositories or access the database context directly. This is deliberate: the demo behaves like an external consumer of the library.
 
-## 🗄️ Database Design
-The relational system is powered by SQLite and mapped cleanly via the Entity Framework Core ORM layer.
+## Database Design
 
-### Tables
-* `Users`
-* `Recipes`
-* `Ingredients`
-* `Categories`
-* `RecipeIngredients`
-* `RecipeSteps`
+SQLite is used as a lightweight persistent store. Entity Framework Core maps the domain entities to relational tables.
 
-### Relationships
-* **User $\rightarrow$ Recipe** $\rightarrow$ One-to-Many
-* **Recipe $\leftrightarrow$ Ingredients** $\rightarrow$ Many-to-Many
-* **Recipe $\rightarrow$ Steps** $\rightarrow$ One-to-Many
-* **Recipe $\rightarrow$ Category** $\rightarrow$ Many-to-One
+Main tables:
 
----
+- `Users`
+- `Recipes`
+- `Ingredients`
+- `Categories`
+- `RecipeIngredients`
+- `RecipeSteps`
 
-## ⚙️ Technology Stack
-* **Runtime / Compiler:** .NET 10
-* **Language:** C#
-* **ORM:** Entity Framework Core
-* **Database Engine:** SQLite
-* **Query Language:** LINQ (Language Integrated Query)
-* **Architectural Design Patterns:** Repository Pattern, Service Pattern, Clean Architecture
+Important relationships:
 
----
+- One user can own many recipes.
+- A recipe belongs to one category.
+- A recipe has many preparation steps.
+- A recipe can use many ingredients through `RecipeIngredients`.
+- Ingredients are global and not tied to a specific user.
 
-## 📦 How to Use This Library
-Because the core system is packaged cleanly as a reusable .NET backend library, it can easily be wired into different frontend systems.
+Important constraints:
 
-### 1. Add Reference to the Library
-```bash
+- User email is unique.
+- Recipe name is unique.
+- Category name is unique.
+- Ingredient name is unique.
+
+## Technology Stack
+
+- C#
+- .NET 10
+- Entity Framework Core
+- SQLite
+- LINQ
+- Console application for demonstration
+
+## How to Use This Library
+
+Add a reference to `RecipeLibrary` from another .NET project:
+
+```powershell
 dotnet add reference ../RecipeLibrary/RecipeLibrary.csproj
 ```
 
-### 2. Configure Database Context
-```csharp
-var dbContext = new RecipeDbContext();
-```
+Use the public facade:
 
-### 3. Create Repository Instances
 ```csharp
-var recipeRepository = new SqliteRecipeRepository(dbContext);
-var categoryRepository = new SqliteCategoryRepository(dbContext);
-```
+using RecipeLibrary;
 
-### 4. Create Service Instances
-```csharp
-var recipeService = new RecipeService(recipeRepository, categoryRepository);
-```
+using var recipes = new RecipeManagement();
 
-### 5. Create Recipes
-```csharp
-var recipe = recipeService.CreateRecipe(
+var user = recipes.RegisterUser("Ravi", "ravi@mail.com");
+var salt = recipes.CreateIngredient("Salt");
+var category = recipes.CreateCategory("Italian");
+
+var recipe = recipes.CreateRecipe(
     name: "Pasta Carbonara",
     userId: user.Id,
-    ingredientIds: ingredientIds,
+    ingredientIds: new List<Guid> { salt.Id },
     categoryId: category.Id,
     steps: new List<string>
     {
         "Boil pasta",
-        "Prepare sauce",
-        "Mix ingredients"
-    }
-);
+        "Season with salt"
+    });
 ```
 
----
+The consuming application does not need to manually instantiate repositories or `RecipeDbContext`.
 
-## ▶️ Running the Demo Application
+## Running the Demo Application
 
-### 1. Restore Dependencies
-```bash
+From the repository root:
+
+```powershell
 dotnet restore
-```
-
-### 2. Build the Solution
-```bash
 dotnet build
-```
-
-### 3. Apply Database Migrations
-```bash
-dotnet ef database update --project RecipeLibrary --startup-project RecipeDemoApp
-```
-
-### 4. Run the Console Demo
-```bash
 dotnet run --project RecipeDemoApp
 ```
 
----
+Run it a second time to see the persistent database behavior:
 
-## 🧪 Demo Flow
-When executed, the `RecipeDemoApp` console engine takes you through an end-to-end sandbox lifecycle:
-1. **User Scope Setup:** Handles creating a new profile or loading active configurations.
-2. **Ingredient Seeding:** Instantiates essential ingredient types.
-3. **Category Configuration:** Generates logical group categories.
-4. **Recipe Assembly:** Demonstrates relational grouping, building a robust recipe with steps and cross-references.
-5. **Recipe Updates:** Modifies active state and updates components on-the-fly.
-6. **Query Execution:** Runs filtering searches to isolate data across users, categories, and ingredients.
-7. **Delete Operations:** Performs safe, controlled teardowns of data dependencies.
+```powershell
+dotnet run --project RecipeDemoApp
+```
 
----
+The SQLite database is created automatically by the library when the demo runs. Do not run `dotnet ef database update`; this project currently uses `EnsureCreated()` for simple local setup instead of migrations.
 
-## 🧠 Key Design Decisions
+## Demo Flow
 
-* **Clean Architecture:** Guarantees decoupling between business workflows, storage mechanisms, and infrastructure boundaries.
-* **Repository Pattern:** Completely wraps persistence querying, abstracting physical data logic and boosting software testability.
-* **Entity Framework Core:** Used as an intuitive tool managing mappings, automated relational change tracking, and smooth migration updates.
-* **SQLite Database:** Selected for its simple, zero-maintenance cross-platform utility, enabling zero-configuration development loops.
-* **Service Layer Validation:** All business rules, format invariants, uniqueness checks, and referential safeguards are checked explicitly inside the service layer before reaching database persistence.
+On the first run, the demo creates sample data and executes the full workflow:
 
----
+```text
+=== USER CREATION ===
+User created: Ravi
 
-## ⚠️ Known Limitations
-* Console application interface only (No HTTP API endpoint or graphical layout built).
-* No native authentication or authorization filters.
-* No decoupled, comprehensive unit test coverage library suite.
-* Simple, high-level structural try-catch runtime exception handling.
+=== INGREDIENT CREATION ===
+Ingredient created: Salt
+Ingredient created: Milk
+Ingredient created: Chocolate
 
----
+=== CATEGORY CREATION ===
+Category created: Italian
 
-## 🚀 Future Improvements
-The following system developments are intended to transform this setup into an enterprise, production-ready environment:
-* Transition the class library into an **ASP.NET Core Web API**.
-* Implement **JWT-based authentication** (JSON Web Tokens) and role-based policies.
-* Integrate automated unit testing frameworks leveraging **xUnit** and **Moq**.
-* Incorporate robust structural telemetry using **Serilog** alongside the built-in Microsoft logging abstraction (`ILogger`).
-* Build **Docker** container configurations for multi-environment packaging.
-* Construct an interface client layer utilizing **React** or **Blazor**.
-* Evolve structural layers to deep **Domain-Driven Design (DDD)** elements by configuring proper Aggregate Roots and Value Objects.
+=== RECIPE CREATION ===
+Recipe created: Pasta Carbonara
 
----
+=== RECIPE UPDATE ===
+Recipe updated successfully
 
-## 👨‍💻 Author
-This repository represents an integration portfolio demonstrating critical backend design concepts:
-* Clean Architecture code organization.
-* Advanced Entity Framework Core relational schemas.
-* Modular Service and Repository software designs.
-* Strict validation-first data engineering.
-* Modern reusable .NET components.
+=== RECIPES BY USER ===
+- Updated Pasta Carbonara
 
-### 📌 Notes
-This software architecture was implemented using an **iterative learning approach**, placing massive importance on addressing concrete EF Core mechanics, keeping domain code separate from infrastructure boundaries, resolving database null safety anomalies, and crafting maintainable service dependencies. It highlights production-focused choices scale-adapted for modern business logic layers.
+=== RECIPES BY CATEGORY ===
+- Updated Pasta Carbonara
+
+=== RECIPES BY INGREDIENT ===
+- Updated Pasta Carbonara
+
+=== CATEGORY UPDATE ===
+Category updated successfully
+
+=== DELETE RECIPE ===
+Temporary recipe deleted successfully
+
+=== DELETE CATEGORY ===
+Temporary category deleted successfully
+
+=== DEMO COMPLETE ===
+```
+
+On the second run, the database is reused. Existing setup data is loaded instead of recreated:
+
+```text
+=== USER CREATION ===
+Existing user loaded: Ravi
+
+=== INGREDIENT CREATION ===
+Ingredient 'Salt' already exists
+Ingredient 'Milk' already exists
+Ingredient 'Chocolate' already exists
+
+=== CATEGORY CREATION ===
+Category 'Italian' already exists
+
+=== RECIPE CREATION ===
+Recipe name already exists
+```
+
+The update, query, and delete demonstrations still run after that.
+
+## Key Design Decisions
+
+- `RecipeManagement` facade: gives consumers one simple API and keeps infrastructure wiring out of the demo project.
+- Service layer validation: business rules are checked before persistence operations.
+- Repository interfaces: application services depend on abstractions, making storage replaceable.
+- EF Core + SQLite: provides real persistence with low setup cost for a portfolio/interview project.
+- `EnsureCreated()` for demo setup: keeps fresh-clone execution simple without requiring migration commands.
+- Idempotent demo flow: the demo can be run multiple times and still demonstrates persistent data behavior.
+
+## Known Limitations
+
+- No Web API or UI is included; the sample is a console application.
+- Favorites are not implemented because they are optional in the assignment.
+- Authentication is not implemented; user registration is modeled, but login/session handling is outside the scope.
+- The current setup uses `EnsureCreated()` instead of a migration workflow, which is suitable for a simple demo but not ideal for long-term schema evolution.
+- There is no separate automated test project yet; the console demo acts as an executable integration demonstration.
+
+## Future Improvements
+
+- Add an xUnit test project for service validation and repository behavior.
+- Add optional favorites support.
+- Expose the library through an ASP.NET Core Web API.
+- Replace `EnsureCreated()` with migrations for production-style schema evolution.
+- Add dependency injection configuration for host applications.
+- Add structured logging and more specific custom exception types.
+
+## Resetting Demo Data
+
+To reset the demo to first-run behavior, delete the generated SQLite database:
+
+```powershell
+Remove-Item .\RecipeDemoApp\bin\Debug\net10.0\recipes.db
+```
+
+Then run:
+
+```powershell
+dotnet run --project RecipeDemoApp
+```
