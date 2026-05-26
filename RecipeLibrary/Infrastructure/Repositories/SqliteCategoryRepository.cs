@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
+using Microsoft.EntityFrameworkCore;
 using RecipeLibrary.Domain.Entities;
 using RecipeLibrary.Infrastructure.Persistence;
 
@@ -24,25 +25,39 @@ namespace RecipeLibrary.Infrastructure.Repositories
 
         public void Update(Category category)
         {
-            _dbContext.Categories.Update(category);
+            // Re-fetch as fresh tracked entity — GetById uses AsNoTracking
+            // so we must load tracked here before saving
+            var tracked = _dbContext.Categories
+                .First(c => c.Id == category.Id);
+
+            tracked.Name = category.Name;
+            _dbContext.SaveChanges();
+        }
+
+        public void Delete(Category category)
+        {
+            // Re-fetch as fresh tracked entity — same reason as Update
+            var tracked = _dbContext.Categories
+                .First(c => c.Id == category.Id);
+
+            _dbContext.Categories.Remove(tracked);
             _dbContext.SaveChanges();
         }
 
         public Category? GetById(Guid id)
         {
+            // READ-ONLY => AsNoTracking prevents double-tracking conflicts
             return _dbContext.Categories
+                .AsNoTracking()
                 .FirstOrDefault(c => c.Id == id);
         }
 
         public List<Category> GetAll()
         {
-            return _dbContext.Categories.ToList();
-        }
-
-        public void Delete(Category category)
-        {
-            _dbContext.Categories.Remove(category);
-            _dbContext.SaveChanges();
+            // READ-ONLY => AsNoTracking prevents double-tracking conflicts
+            return _dbContext.Categories
+                .AsNoTracking()
+                .ToList();
         }
     }
 }

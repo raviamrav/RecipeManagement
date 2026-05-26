@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Linq;
 
 using RecipeLibrary.Domain.Entities;
 using RecipeLibrary.Infrastructure.Repositories;
@@ -20,6 +20,10 @@ namespace RecipeLibrary.Application.Services
             _categoryRepository = categoryRepository;
         }
 
+        // =========================
+        // CREATE
+        // =========================
+
         public Recipe CreateRecipe(
             string name,
             Guid userId,
@@ -27,12 +31,7 @@ namespace RecipeLibrary.Application.Services
             Guid categoryId,
             List<string> steps)
         {
-            ValidateRecipe(
-                name,
-                ingredientIds,
-                categoryId,
-                steps
-            );
+            ValidateRecipe(name, ingredientIds, steps, categoryId);
 
             var recipe = new Recipe
             {
@@ -41,33 +40,31 @@ namespace RecipeLibrary.Application.Services
                 CategoryId = categoryId
             };
 
-            int stepNumber = 1;
+            recipe.RecipeIngredients = ingredientIds
+                .Select(id => new RecipeIngredient
+                {
+                    RecipeId = recipe.Id,
+                    IngredientId = id
+                })
+                .ToList();
 
-            foreach (var step in steps)
-            {
-                recipe.RecipeSteps.Add(
-                    new RecipeStep
-                    {
-                        RecipeId = recipe.Id,
-                        StepNumber = stepNumber++,
-                        Description = step
-                    });
-            }
-
-            foreach (var ingredientId in ingredientIds)
-            {
-                recipe.RecipeIngredients.Add(
-                    new RecipeIngredient
-                    {
-                        RecipeId = recipe.Id,
-                        IngredientId = ingredientId
-                    });
-            }
+            recipe.RecipeSteps = steps
+                .Select((step, index) => new RecipeStep
+                {
+                    RecipeId = recipe.Id,
+                    StepNumber = index + 1,
+                    Description = step
+                })
+                .ToList();
 
             _recipeRepository.Add(recipe);
 
             return recipe;
         }
+
+        // =========================
+        // READ
+        // =========================
 
         public List<Recipe> GetAllRecipes()
         {
@@ -94,6 +91,10 @@ namespace RecipeLibrary.Application.Services
             return _recipeRepository.GetByIngredientId(ingredientId);
         }
 
+        // =========================
+        // UPDATE
+        // =========================
+
         public void UpdateRecipe(
             Guid recipeId,
             string name,
@@ -101,55 +102,16 @@ namespace RecipeLibrary.Application.Services
             Guid categoryId,
             List<string> steps)
         {
-            var recipe = _recipeRepository.GetByRecipeId(recipeId);
+            ValidateRecipe(name, ingredientIds, steps, categoryId, recipeId);
 
-            if (recipe == null)
-            {
-                throw new InvalidOperationException(
-                    "Recipe not found"
-                );
-            }
-
-            ValidateRecipe(
-                name,
-                ingredientIds,
-                categoryId,
-                steps,
-                recipeId
-            );
-
-            recipe.Name = name;
-            recipe.CategoryId = categoryId;
-
-            recipe.RecipeIngredients.Clear();
-
-            foreach (var ingredientId in ingredientIds)
-            {
-                recipe.RecipeIngredients.Add(
-                    new RecipeIngredient
-                    {
-                        RecipeId = recipe.Id,
-                        IngredientId = ingredientId
-                    });
-            }
-
-            recipe.RecipeSteps.Clear();
-
-            int stepNumber = 1;
-
-            foreach (var step in steps)
-            {
-                recipe.RecipeSteps.Add(
-                    new RecipeStep
-                    {
-                        RecipeId = recipe.Id,
-                        StepNumber = stepNumber++,
-                        Description = step
-                    });
-            }
-
-            _recipeRepository.Update(recipe);
+            // All EF work (load, remove children, add new children, save)
+            // is done inside the repository in one clean transaction
+            _recipeRepository.Update(recipeId, name, categoryId, ingredientIds, steps);
         }
+
+        // =========================
+        // DELETE
+        // =========================
 
         public void DeleteRecipe(Guid recipeId)
         {
@@ -157,50 +119,36 @@ namespace RecipeLibrary.Application.Services
 
             if (recipe == null)
             {
-                throw new InvalidOperationException(
-                    "Recipe not found"
-                );
+                throw new InvalidOperationException("Recipe not found");
             }
 
             _recipeRepository.Delete(recipe);
         }
 
+        // =========================
+        // VALIDATION
+        // =========================
+
         private void ValidateRecipe(
             string name,
             List<Guid> ingredientIds,
-            Guid categoryId,
             List<string> steps,
+            Guid categoryId,
             Guid? existingRecipeId = null)
         {
             if (string.IsNullOrWhiteSpace(name))
-            {
-                throw new ArgumentException(
-                    "Recipe name is required"
-                );
-            }
+                throw new ArgumentException("Recipe name is required");
 
             if (ingredientIds == null || ingredientIds.Count == 0)
-            {
-                throw new ArgumentException(
-                    "At least one ingredient is required"
-                );
-            }
+                throw new ArgumentException("At least one ingredient is required");
 
             if (steps == null || steps.Count == 0)
-            {
-                throw new ArgumentException(
-                    "At least one step is required"
-                );
-            }
+                throw new ArgumentException("At least one step is required");
 
             var category = _categoryRepository.GetById(categoryId);
 
             if (category == null)
-            {
-                throw new InvalidOperationException(
-                    "Category does not exist"
-                );
-            }
+                throw new InvalidOperationException("Category not found");
 
             var existingRecipe = _recipeRepository
                 .GetAll()
@@ -209,11 +157,7 @@ namespace RecipeLibrary.Application.Services
                     && r.Id != existingRecipeId);
 
             if (existingRecipe != null)
-            {
-                throw new InvalidOperationException(
-                    "Recipe name already exists"
-                );
-            }
+                throw new InvalidOperationException("Recipe name already exists");
         }
     }
 }

@@ -20,8 +20,9 @@ namespace RecipeLibrary.Application.Services
             var existingIngredient = _ingredientRepository.GetByName(name);
             if (existingIngredient != null)
             {
-                //throw new InvalidOperationException($"An ingredient with the name '{name}' already exists.");
-                return existingIngredient;
+                throw new InvalidOperationException(
+                    $"An ingredient with the name '{name}' already exists."
+                );
             }
 
             var ingredient = new Ingredient
@@ -36,6 +37,5 @@ namespace RecipeLibrary.Application.Services
         {
             return _ingredientRepository.GetAll();
         }
-
     }
 }

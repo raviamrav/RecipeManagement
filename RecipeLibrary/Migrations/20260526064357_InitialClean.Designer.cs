@@ -11,7 +11,7 @@ using RecipeLibrary.Infrastructure.Persistence;
 namespace RecipeLibrary.Migrations
 {
     [DbContext(typeof(RecipeDbContext))]
-    [Migration("20260525115921_InitialClean")]
+    [Migration("20260526064357_InitialClean")]
     partial class InitialClean
     {
         /// <inheritdoc />
@@ -82,15 +82,21 @@ namespace RecipeLibrary.Migrations
 
             modelBuilder.Entity("RecipeLibrary.Domain.Entities.RecipeIngredient", b =>
                 {
-                    b.Property<Guid>("RecipeId")
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("IngredientId")
                         .HasColumnType("TEXT");
 
-                    b.HasKey("RecipeId", "IngredientId");
+                    b.Property<Guid>("RecipeId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
 
                     b.HasIndex("IngredientId");
+
+                    b.HasIndex("RecipeId");
 
                     b.ToTable("RecipeIngredients");
                 });
@@ -145,7 +151,7 @@ namespace RecipeLibrary.Migrations
                     b.HasOne("RecipeLibrary.Domain.Entities.Ingredient", "Ingredient")
                         .WithMany()
                         .HasForeignKey("IngredientId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("RecipeLibrary.Domain.Entities.Recipe", "Recipe")

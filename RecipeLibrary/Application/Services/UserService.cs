@@ -16,7 +16,6 @@ namespace RecipeLibrary.Application.Services
             _userRepository = userRepository;
         }
 
-
         public User Register(string name, string email)
         {
             ValidateUser(name, email);
@@ -24,7 +23,9 @@ namespace RecipeLibrary.Application.Services
             var existingUser = _userRepository.GetByEmail(email);
             if (existingUser != null)
             {
-                throw new Exception("Email is already registered");
+                throw new InvalidOperationException(
+                    "Email is already registered"
+                );
             }
 
             var user = new User

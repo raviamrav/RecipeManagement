@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Linq;
@@ -12,7 +12,8 @@ namespace RecipeLibrary.Infrastructure.Repositories
     {
         private readonly RecipeDbContext _dbContext;
 
-        public SqliteRecipeRepository(RecipeDbContext dbContext)
+        public SqliteRecipeRepository(
+            RecipeDbContext dbContext)
         {
             _dbContext = dbContext;
         }
@@ -23,9 +24,50 @@ namespace RecipeLibrary.Infrastructure.Repositories
             _dbContext.SaveChanges();
         }
 
-        public void Update(Recipe recipe)
+        public void Update(
+            Guid recipeId,
+            string name,
+            Guid categoryId,
+            List<Guid> ingredientIds,
+            List<string> steps)
         {
-            _dbContext.Recipes.Update(recipe);
+            // Clear tracked entries to ensure a clean state across operations
+            foreach (var entry in _dbContext.ChangeTracker.Entries().ToList())
+                entry.State = EntityState.Detached;
+
+            var recipe = _dbContext.Recipes
+                .Include(r => r.RecipeIngredients)
+                .Include(r => r.RecipeSteps)
+                .First(r => r.Id == recipeId);
+
+            recipe.Name = name;
+            recipe.CategoryId = categoryId;
+
+            // Refresh child relations due to SQLite constraint batching limitations
+            _dbContext.RecipeIngredients.RemoveRange(recipe.RecipeIngredients);
+            _dbContext.RecipeSteps.RemoveRange(recipe.RecipeSteps);
+            _dbContext.SaveChanges();
+
+            var newIngredients = ingredientIds
+                .Select(id => new RecipeIngredient
+                {
+                    RecipeId = recipe.Id,
+                    IngredientId = id
+                })
+                .ToList();
+
+            var newSteps = steps
+                .Select((step, index) => new RecipeStep
+                {
+                    RecipeId = recipe.Id,
+                    StepNumber = index + 1,
+                    Description = step
+                })
+                .ToList();
+
+            _dbContext.RecipeIngredients.AddRange(newIngredients);
+            _dbContext.RecipeSteps.AddRange(newSteps);
+
             _dbContext.SaveChanges();
         }
 
@@ -46,6 +88,7 @@ namespace RecipeLibrary.Infrastructure.Repositories
         public List<Recipe> GetAll()
         {
             return _dbContext.Recipes
+                .AsNoTracking()
                 .Include(r => r.RecipeIngredients)
                 .Include(r => r.RecipeSteps)
                 .ToList();
@@ -54,21 +97,32 @@ namespace RecipeLibrary.Infrastructure.Repositories
         public List<Recipe> GetByUserId(Guid id)
         {
             return _dbContext.Recipes
+                .AsNoTracking()
                 .Where(r => r.UserId == id)
+                .Include(r => r.RecipeIngredients)
+                .Include(r => r.RecipeSteps)
                 .ToList();
         }
 
-        public List<Recipe> GetByCategoryId(Guid categoryId)
+        public List<Recipe> GetByCategoryId(Guid id)
         {
             return _dbContext.Recipes
-                .Where(r => r.CategoryId == categoryId)
+                .AsNoTracking()
+                .Where(r => r.CategoryId == id)
+                .Include(r => r.RecipeIngredients)
+                .Include(r => r.RecipeSteps)
                 .ToList();
         }
 
         public List<Recipe> GetByIngredientId(Guid ingredientId)
         {
             return _dbContext.Recipes
-                .Where(r => r.RecipeIngredients.Any(ri => ri.IngredientId == ingredientId))
+                .AsNoTracking()
+                .Include(r => r.RecipeIngredients)
+                .Include(r => r.RecipeSteps)
+                .Where(r =>
+                    r.RecipeIngredients.Any(ri =>
+                        ri.IngredientId == ingredientId))
                 .ToList();
         }
     }

@@ -9,28 +9,31 @@ namespace RecipeLibrary.Infrastructure.Persistence
     public class RecipeDbContext : DbContext
     {
         public DbSet<User> Users { get; set; }
-
         public DbSet<Recipe> Recipes { get; set; }
-
         public DbSet<Ingredient> Ingredients { get; set; }
-
         public DbSet<Category> Categories { get; set; }
-
         public DbSet<RecipeIngredient> RecipeIngredients { get; set; }
-
         public DbSet<RecipeStep> RecipeSteps { get; set; }
 
         protected override void OnConfiguring(
             DbContextOptionsBuilder optionsBuilder)
         {
+            var dbPath =
+                Path.Combine(
+                    AppContext.BaseDirectory,
+                    "recipes.db");
+
             optionsBuilder.UseSqlite(
-                "Data Source=recipes.db"
-            );
+                $"Data Source={dbPath}");
         }
 
         protected override void OnModelCreating(
             ModelBuilder modelBuilder)
         {
+            // =========================
+            // UNIQUE CONSTRAINTS
+            // =========================
+
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
                 .IsUnique();
@@ -47,22 +50,37 @@ namespace RecipeLibrary.Infrastructure.Persistence
                 .HasIndex(i => i.Name)
                 .IsUnique();
 
+            // =========================
+            // RECIPE INGREDIENT (MANY-TO-MANY)
+            // =========================
+
             modelBuilder.Entity<RecipeIngredient>()
-                .HasKey(ri => new
-                {
-                    ri.RecipeId,
-                    ri.IngredientId
-                });
+                .HasKey(ri => ri.Id);
 
             modelBuilder.Entity<RecipeIngredient>()
                 .HasOne(ri => ri.Recipe)
                 .WithMany(r => r.RecipeIngredients)
-                .HasForeignKey(ri => ri.RecipeId);
+                .HasForeignKey(ri => ri.RecipeId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<RecipeIngredient>()
                 .HasOne(ri => ri.Ingredient)
                 .WithMany()
-                .HasForeignKey(ri => ri.IngredientId);
+                .HasForeignKey(ri => ri.IngredientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // =========================
+            // RECIPE STEP (1:N)
+            // =========================
+
+            modelBuilder.Entity<RecipeStep>()
+                .HasKey(rs => rs.Id);
+
+            modelBuilder.Entity<RecipeStep>()
+                .HasOne(rs => rs.Recipe)
+                .WithMany(r => r.RecipeSteps)
+                .HasForeignKey(rs => rs.RecipeId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }
