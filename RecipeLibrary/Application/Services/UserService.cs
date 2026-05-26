@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
+using RecipeLibrary.Application.Interfaces;
 using RecipeLibrary.Domain.Entities;
-using RecipeLibrary.Infrastructure.Repositories;
 
 namespace RecipeLibrary.Application.Services
 {

@@ -5,6 +5,7 @@ using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using RecipeLibrary.Domain.Entities;
 using RecipeLibrary.Infrastructure.Persistence;
+using RecipeLibrary.Application.Interfaces;
 
 namespace RecipeLibrary.Infrastructure.Repositories
 {

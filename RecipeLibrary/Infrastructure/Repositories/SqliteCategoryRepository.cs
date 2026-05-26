@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using RecipeLibrary.Application.Interfaces;
 using RecipeLibrary.Domain.Entities;
 using RecipeLibrary.Infrastructure.Persistence;
 

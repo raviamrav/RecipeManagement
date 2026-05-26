@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using RecipeLibrary.Domain.Entities;
 
-namespace RecipeLibrary.Infrastructure.Repositories
+namespace RecipeLibrary.Application.Interfaces
 {
     public interface IUserRepository
     {

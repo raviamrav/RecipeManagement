@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using RecipeLibrary.Application.Interfaces;
 using RecipeLibrary.Domain.Entities;
-using RecipeLibrary.Infrastructure.Repositories;
 
 namespace RecipeLibrary.Application.Services
 {
