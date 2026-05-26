@@ -32,9 +32,9 @@ namespace RecipeLibrary.Infrastructure.Repositories
             List<Guid> ingredientIds,
             List<string> steps)
         {
-            // Clear tracked entries to ensure a clean state across operations
-            foreach (var entry in _dbContext.ChangeTracker.Entries().ToList())
-                entry.State = EntityState.Detached;
+            using var transaction = _dbContext.Database.BeginTransaction();
+
+            _dbContext.ChangeTracker.Clear();
 
             var recipe = _dbContext.Recipes
                 .Include(r => r.RecipeIngredients)
@@ -48,11 +48,12 @@ namespace RecipeLibrary.Infrastructure.Repositories
             _dbContext.RecipeIngredients.RemoveRange(recipe.RecipeIngredients);
             _dbContext.RecipeSteps.RemoveRange(recipe.RecipeSteps);
             _dbContext.SaveChanges();
+            _dbContext.ChangeTracker.Clear();
 
             var newIngredients = ingredientIds
                 .Select(id => new RecipeIngredient
                 {
-                    RecipeId = recipe.Id,
+                    RecipeId = recipeId,
                     IngredientId = id
                 })
                 .ToList();
@@ -60,7 +61,7 @@ namespace RecipeLibrary.Infrastructure.Repositories
             var newSteps = steps
                 .Select((step, index) => new RecipeStep
                 {
-                    RecipeId = recipe.Id,
+                    RecipeId = recipeId,
                     StepNumber = index + 1,
                     Description = step
                 })
@@ -70,6 +71,7 @@ namespace RecipeLibrary.Infrastructure.Repositories
             _dbContext.RecipeSteps.AddRange(newSteps);
 
             _dbContext.SaveChanges();
+            transaction.Commit();
         }
 
         public void Delete(Recipe recipe)
