@@ -44,7 +44,80 @@ The system supports advanced querying and data fetching:
 * Get recipes by ingredient
 
 ---
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    RecipeDemoApp (Console)                   │
+│--------------------------------------------------------------│
+│ - Demonstrates application workflow                          │
+│ - Creates services and executes operations                   │
+│ - Used only for testing / demo purposes                      │
+└──────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────┐
+│                     Application Layer                        │
+│--------------------------------------------------------------│
+│ Services:                                                    │
+│ - RecipeService                                              │
+│ - UserService                                                │
+│ - CategoryService                                            │
+│ - IngredientService                                          │
+│                                                              │
+│ Responsibilities:                                            │
+│ - Business logic                                             │
+│ - Validation rules                                           │
+│ - Orchestration                                              │
+│ - Repository contracts (interfaces)                          │
+└──────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────┐
+│                        Domain Layer                          │
+│--------------------------------------------------------------│
+│ Entities:                                                    │
+│ - User                                                       │
+│ - Recipe                                                     │
+│ - Ingredient                                                 │
+│ - Category                                                   │
+│ - RecipeIngredient                                           │
+│ - RecipeStep                                                 │
+│                                                              │
+│ Responsibilities:                                            │
+│ - Core business models                                       │
+│ - Relationships                                              │
+│ - Domain structure                                           │
+└──────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────┐
+│                    Infrastructure Layer                      │
+│--------------------------------------------------------------│
+│ Persistence & External Concerns:                             │
+│ - RecipeDbContext                                            │
+│ - EF Core Configuration                                      │
+│ - SQLite Database                                            │
+│ - Repository Implementations                                 │
+│   - SqliteRecipeRepository                                   │
+│   - SqliteUserRepository                                     │
+│   - SqliteCategoryRepository                                 │
+│   - SqliteIngredientRepository                               │
+└──────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────┐
+│                         SQLite DB                            │
+│--------------------------------------------------------------│
+│ Tables:                                                      │
+│ - Users                                                      │
+│ - Recipes                                                    │
+│ - Ingredients                                                │
+│ - Categories                                                 │
+│ - RecipeIngredients                                          │
+│ - RecipeSteps                                                │
+└──────────────────────────────────────────────────────────────┘
 
+```
+---
 ## 🏗️ Architecture
 The project strictly isolates infrastructure and framework specifics away from the core software design patterns.
 
