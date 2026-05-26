@@ -1,46 +1,7 @@
-using RecipeLibrary.Application.Services;
+using RecipeLibrary;
 using RecipeLibrary.Domain.Entities;
-using RecipeLibrary.Infrastructure.Persistence;
-using RecipeLibrary.Infrastructure.Repositories;
 
-// =======================
-// DATABASE + REPOSITORIES
-// =======================
-
-var dbContext = new RecipeDbContext();
-
-dbContext.Database.EnsureCreated();
-
-var userRepository =
-    new SqliteUserRepository(dbContext);
-
-var categoryRepository =
-    new SqliteCategoryRepository(dbContext);
-
-var ingredientRepository =
-    new SqliteIngredientRepository(dbContext);
-
-var recipeRepository =
-    new SqliteRecipeRepository(dbContext);
-
-// =======================
-// SERVICES
-// =======================
-
-var userService =
-    new UserService(userRepository);
-
-var categoryService =
-    new CategoryService(categoryRepository);
-
-var ingredientService =
-    new IngredientService(ingredientRepository);
-
-var recipeService =
-    new RecipeService(
-        recipeRepository,
-        categoryRepository
-    );
+using var recipeManagement = new RecipeManagement();
 
 // =======================
 // 1. USER CREATION
@@ -102,7 +63,7 @@ var recipe = GetOrCreateRecipe(
 
 Console.WriteLine("\n=== RECIPE UPDATE ===");
 
-recipeService.UpdateRecipe(
+recipeManagement.UpdateRecipe(
     recipe.Id,
     "Updated Pasta Carbonara",
     new List<Guid> { salt.Id },
@@ -122,7 +83,7 @@ Console.WriteLine("Recipe updated successfully");
 
 Console.WriteLine("\n=== RECIPES BY USER ===");
 
-var recipesByUser = recipeService.GetRecipesByUser(user.Id);
+var recipesByUser = recipeManagement.GetRecipesByUser(user.Id);
 
 foreach (var r in recipesByUser)
 {
@@ -136,7 +97,7 @@ foreach (var r in recipesByUser)
 Console.WriteLine("\n=== RECIPES BY CATEGORY ===");
 
 var recipesByCategory =
-    recipeService.GetRecipesByCategory(italian.Id);
+    recipeManagement.GetRecipesByCategory(italian.Id);
 
 foreach (var r in recipesByCategory)
 {
@@ -150,7 +111,7 @@ foreach (var r in recipesByCategory)
 Console.WriteLine("\n=== RECIPES BY INGREDIENT ===");
 
 var recipesByIngredient =
-    recipeService.GetRecipesByIngredient(salt.Id);
+    recipeManagement.GetRecipesByIngredient(salt.Id);
 
 foreach (var r in recipesByIngredient)
 {
@@ -163,7 +124,7 @@ foreach (var r in recipesByIngredient)
 
 Console.WriteLine("\n=== CATEGORY UPDATE ===");
 
-categoryService.UpdateCategory(
+recipeManagement.UpdateCategory(
     italian.Id,
     "Updated Italian"
 );
@@ -181,7 +142,7 @@ var tempRecipe = CreateTemporaryRecipe(
     salt.Id,
     italian.Id);
 
-recipeService.DeleteRecipe(tempRecipe.Id);
+recipeManagement.DeleteRecipe(tempRecipe.Id);
 
 Console.WriteLine("Temporary recipe deleted successfully");
 
@@ -194,7 +155,7 @@ Console.WriteLine("\n=== DELETE CATEGORY ===");
 var tempCategory =
     CreateTemporaryCategory();
 
-categoryService.DeleteCategory(tempCategory.Id);
+recipeManagement.DeleteCategory(tempCategory.Id);
 
 Console.WriteLine("Temporary category deleted successfully");
 
@@ -208,7 +169,7 @@ User GetOrCreateUser(
     string name,
     string email)
 {
-    var existingUser = userRepository.GetByEmail(email);
+    var existingUser = recipeManagement.GetUserByEmail(email);
 
     if (existingUser != null)
     {
@@ -216,7 +177,7 @@ User GetOrCreateUser(
         return existingUser;
     }
 
-    var user = userService.Register(name, email);
+    var user = recipeManagement.RegisterUser(name, email);
 
     Console.WriteLine($"User created: {user.Name}");
     return user;
@@ -224,7 +185,7 @@ User GetOrCreateUser(
 
 Ingredient GetOrCreateIngredient(string name)
 {
-    var existingIngredient = ingredientRepository.GetByName(name);
+    var existingIngredient = recipeManagement.GetIngredientByName(name);
 
     if (existingIngredient != null)
     {
@@ -232,7 +193,7 @@ Ingredient GetOrCreateIngredient(string name)
         return existingIngredient;
     }
 
-    var ingredient = ingredientService.CreateIngredient(name);
+    var ingredient = recipeManagement.CreateIngredient(name);
 
     Console.WriteLine($"Ingredient created: {ingredient.Name}");
     return ingredient;
@@ -242,8 +203,8 @@ Category GetOrCreateCategory(
     string originalName,
     string updatedName)
 {
-    var existingCategory = categoryRepository
-        .GetAll()
+    var existingCategory = recipeManagement
+        .GetAllCategories()
         .FirstOrDefault(c =>
             c.Name.Equals(originalName, StringComparison.OrdinalIgnoreCase)
             || c.Name.Equals(updatedName, StringComparison.OrdinalIgnoreCase));
@@ -254,7 +215,7 @@ Category GetOrCreateCategory(
         return existingCategory;
     }
 
-    var category = categoryService.CreateCategory(originalName);
+    var category = recipeManagement.CreateCategory(originalName);
 
     Console.WriteLine($"Category created: {category.Name}");
     return category;
@@ -268,7 +229,7 @@ Recipe GetOrCreateRecipe(
     Guid categoryId,
     List<string> steps)
 {
-    var existingRecipe = recipeService
+    var existingRecipe = recipeManagement
         .GetAllRecipes()
         .FirstOrDefault(r =>
             r.Name.Equals(originalName, StringComparison.OrdinalIgnoreCase)
@@ -280,7 +241,7 @@ Recipe GetOrCreateRecipe(
         return existingRecipe;
     }
 
-    var recipe = recipeService.CreateRecipe(
+    var recipe = recipeManagement.CreateRecipe(
         name: originalName,
         userId: userId,
         ingredientIds: ingredientIds,
@@ -296,7 +257,7 @@ Recipe CreateTemporaryRecipe(
     Guid ingredientId,
     Guid categoryId)
 {
-    var existingTemporaryRecipe = recipeService
+    var existingTemporaryRecipe = recipeManagement
         .GetAllRecipes()
         .FirstOrDefault(r =>
             r.Name.Equals(
@@ -305,10 +266,10 @@ Recipe CreateTemporaryRecipe(
 
     if (existingTemporaryRecipe != null)
     {
-        recipeService.DeleteRecipe(existingTemporaryRecipe.Id);
+        recipeManagement.DeleteRecipe(existingTemporaryRecipe.Id);
     }
 
-    return recipeService.CreateRecipe(
+    return recipeManagement.CreateRecipe(
         "Temporary Recipe",
         userId,
         new List<Guid> { ingredientId },
@@ -318,8 +279,8 @@ Recipe CreateTemporaryRecipe(
 
 Category CreateTemporaryCategory()
 {
-    var existingTemporaryCategory = categoryRepository
-        .GetAll()
+    var existingTemporaryCategory = recipeManagement
+        .GetAllCategories()
         .FirstOrDefault(c =>
             c.Name.Equals(
                 "Temporary Category",
@@ -327,8 +288,8 @@ Category CreateTemporaryCategory()
 
     if (existingTemporaryCategory != null)
     {
-        categoryService.DeleteCategory(existingTemporaryCategory.Id);
+        recipeManagement.DeleteCategory(existingTemporaryCategory.Id);
     }
 
-    return categoryService.CreateCategory("Temporary Category");
+    return recipeManagement.CreateCategory("Temporary Category");
 }

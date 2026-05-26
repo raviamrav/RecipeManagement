@@ -10,13 +10,19 @@ namespace RecipeLibrary.Application.Services
     {
         private readonly IRecipeRepository _recipeRepository;
         private readonly ICategoryRepository _categoryRepository;
+        private readonly IUserRepository _userRepository;
+        private readonly IIngredientRepository _ingredientRepository;
 
         public RecipeService(
             IRecipeRepository recipeRepository,
-            ICategoryRepository categoryRepository)
+            ICategoryRepository categoryRepository,
+            IUserRepository userRepository,
+            IIngredientRepository ingredientRepository)
         {
             _recipeRepository = recipeRepository;
             _categoryRepository = categoryRepository;
+            _userRepository = userRepository;
+            _ingredientRepository = ingredientRepository;
         }
 
         // =========================
@@ -30,7 +36,7 @@ namespace RecipeLibrary.Application.Services
             Guid categoryId,
             List<string> steps)
         {
-            ValidateRecipe(name, ingredientIds, steps, categoryId);
+            ValidateRecipe(name, userId, ingredientIds, steps, categoryId);
 
             var recipe = new Recipe
             {
@@ -101,7 +107,20 @@ namespace RecipeLibrary.Application.Services
             Guid categoryId,
             List<string> steps)
         {
-            ValidateRecipe(name, ingredientIds, steps, categoryId, recipeId);
+            var existingRecipe = _recipeRepository.GetByRecipeId(recipeId);
+
+            if (existingRecipe == null)
+            {
+                throw new InvalidOperationException("Recipe not found");
+            }
+
+            ValidateRecipe(
+                name,
+                existingRecipe.UserId,
+                ingredientIds,
+                steps,
+                categoryId,
+                recipeId);
 
             // All EF work (load, remove children, add new children, save)
             // is done inside the repository in one clean transaction
@@ -130,6 +149,7 @@ namespace RecipeLibrary.Application.Services
 
         private void ValidateRecipe(
             string name,
+            Guid userId,
             List<Guid> ingredientIds,
             List<string> steps,
             Guid categoryId,
@@ -144,10 +164,21 @@ namespace RecipeLibrary.Application.Services
             if (steps == null || steps.Count == 0)
                 throw new ArgumentException("At least one step is required");
 
+            var user = _userRepository.GetById(userId);
+
+            if (user == null)
+                throw new InvalidOperationException("User not found");
+
             var category = _categoryRepository.GetById(categoryId);
 
             if (category == null)
                 throw new InvalidOperationException("Category not found");
+
+            var missingIngredient = ingredientIds
+                .FirstOrDefault(id => _ingredientRepository.GetById(id) == null);
+
+            if (missingIngredient != Guid.Empty)
+                throw new InvalidOperationException("Ingredient not found");
 
             var existingRecipe = _recipeRepository
                 .GetAll()
